@@ -112,6 +112,7 @@ func (s *server) authenticate(next http.Handler) http.Handler {
 		}
 		u, err := s.store.Data().Find(id.(int))
 		if err != nil {
+			s.logger.Printf("loh")
 			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
 			return
 		}
@@ -128,7 +129,7 @@ func (s *server) handleWhoami() http.HandlerFunc {
 
 func (s *server) handleUsersCreate() http.HandlerFunc {
 	type request struct {
-		Img      string `json:"img"`
+		Text     string `json:"text"`
 		Password string `json:"password"`
 	}
 
@@ -139,7 +140,7 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			return
 		}
 
-		image, err := renderImage(req.Img)
+		image, err := renderImage(req.Text)
 		if err != nil {
 			s.error(w, r, http.StatusTeapot, err)
 		}

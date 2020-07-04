@@ -1,10 +1,12 @@
 package apiserver
 
 import (
+	"bytes"
 	"encoding/base64"
 	"image"
 	"image/color"
 	"image/draw"
+	"image/png"
 	"io/ioutil"
 	"log"
 	"math"
@@ -80,7 +82,13 @@ func renderImage(text string) (string, error) {
 	d.Dot = fixed.P(10, y)
 	d.DrawString(text)
 
-	encoded := base64.StdEncoding.EncodeToString([]byte(rgba.Pix))
+	buf := new(bytes.Buffer)
+	err = png.Encode(buf, rgba)
+	if err != nil {
+		return "", err
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return encoded, nil
 
 }

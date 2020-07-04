@@ -32,7 +32,7 @@ func (r *DataRepository) Create(u *model.Data) error {
 // Find ...
 func (r *DataRepository) Find(id int) (*model.Data, error) {
 	u := &model.Data{}
-	if err := r.store.db.QueryRow("SELECT id, TRANSLATE(img, E'\n', ''), encrypted_password FROM securebin WHERE id = $1",
+	if err := r.store.db.QueryRow("SELECT id, TRANSLATE(ENCODE(img, 'base64'), E'\n', ''), encrypted_password FROM securebin WHERE id = $1",
 		id,
 	).Scan(
 		&u.ID,
