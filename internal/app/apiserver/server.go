@@ -61,6 +61,7 @@ func (s *server) configureRouter() {
 	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
 	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
+	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
 	s.router.HandleFunc("/sessions", s.handleSessionsCreate()).Methods("POST")
 
 	// /private/...
@@ -125,9 +126,9 @@ func (s *server) handleWhoami() http.HandlerFunc {
 	}
 }
 
-func (s *server) handleSessionsCreate() http.HandlerFunc {
+func (s *server) handleUsersCreate() http.HandlerFunc {
 	type request struct {
-		Email    string `json:"email"`
+		Img      string `json:"img"`
 		Password string `json:"password"`
 	}
 
@@ -138,7 +139,39 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			return
 		}
 
-		u, err := s.store.Data().FindByEmail(req.Email)
+		image, err := renderImage(req.Img)
+		if err != nil {
+			s.error(w, r, http.StatusTeapot, err)
+		}
+
+		u := &model.Data{
+			Img:      image,
+			Password: req.Password,
+		}
+		if err := s.store.Data().Create(u); err != nil {
+			s.error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
+
+		u.Sanitize()
+		s.respond(w, r, http.StatusCreated, u)
+	}
+}
+
+func (s *server) handleSessionsCreate() http.HandlerFunc {
+	type request struct {
+		ID       int    `json:"id"`
+		Password string `json:"password"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		u, err := s.store.Data().Find(req.ID)
 		if err != nil || !u.ComparePassword(req.Password) {
 			s.error(w, r, http.StatusUnauthorized, errIncorrectEmailOrPassword)
 			return
@@ -156,7 +189,7 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			return
 		}
 
-		s.respond(w, r, http.StatusOK, nil)
+		s.respond(w, r, http.StatusOK, u.Img)
 	}
 }
 

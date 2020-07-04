@@ -23,38 +23,20 @@ func (r *DataRepository) Create(u *model.Data) error {
 	}
 
 	return r.store.db.QueryRow(
-		"INSERT INTO datas (email, encrypted_password) VALUES ($1, $2) RETURNING id",
-		u.Email,
+		"INSERT INTO securebin (img, encrypted_password) VALUES (DECODE($1, 'base64'), $2) RETURNING id",
+		u.Img,
 		u.EncryptedPassword,
 	).Scan(&u.ID)
-}
-
-// FindByEmail ...
-func (r *DataRepository) FindByEmail(email string) (*model.Data, error) {
-	u := &model.Data{}
-	if err := r.store.db.QueryRow("SELECT id, email, encrypted_password FROM datas WHERE email = $1",
-		email,
-	).Scan(
-		&u.ID,
-		&u.Email,
-		&u.EncryptedPassword,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
-		}
-		return nil, err
-	}
-	return u, nil
 }
 
 // Find ...
 func (r *DataRepository) Find(id int) (*model.Data, error) {
 	u := &model.Data{}
-	if err := r.store.db.QueryRow("SELECT id, email, encrypted_password FROM datas WHERE id = $1",
+	if err := r.store.db.QueryRow("SELECT id, TRANSLATE(img, E'\n', ''), encrypted_password FROM securebin WHERE id = $1",
 		id,
 	).Scan(
 		&u.ID,
-		&u.Email,
+		&u.Img,
 		&u.EncryptedPassword,
 	); err != nil {
 		if err == sql.ErrNoRows {

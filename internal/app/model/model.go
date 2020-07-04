@@ -2,14 +2,13 @@ package model
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Data ...
 type Data struct {
 	ID                int    `json:"id"`
-	Email             string `json:"email"`
+	Img               string `json:"img"`
 	Password          string `json:"password,omitempty"` // omitempty: if empty - don't return
 	EncryptedPassword string `json:"-"`                  // no render
 }
@@ -17,7 +16,6 @@ type Data struct {
 // Validate ...
 func (u *Data) Validate() error {
 	return validation.ValidateStruct(u,
-		validation.Field(&u.Email, validation.Required, is.Email),
 		validation.Field(&u.Password, validation.Required.When(u.EncryptedPassword == ""), validation.Length(6, 100)),
 	)
 }
@@ -35,8 +33,8 @@ func (u *Data) BeforeCreate() error {
 	return nil
 }
 
-// Sanitaze ...
-func (u *Data) Sanitaze() {
+// Sanitize ...
+func (u *Data) Sanitize() {
 	u.Password = ""
 }
 
