@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sethvargo/go-password/password"
+
 	"github.com/google/uuid"
 
 	"github.com/gorilla/handlers"
@@ -29,6 +31,7 @@ const (
 var (
 	errIncorrectEmailOrPassword = errors.New("incorrect email or password") // cover real error
 	errNotAuthenticated         = errors.New("not authenticated")
+	errNoContent                = errors.New("no content")
 )
 
 type ctxKey int8
@@ -61,8 +64,8 @@ func (s *server) configureRouter() {
 	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
 	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
-	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
-	s.router.HandleFunc("/sessions", s.handleSessionsCreate()).Methods("POST")
+	s.router.HandleFunc("/paste", s.handleUsersCreate()).Methods("POST")
+	s.router.HandleFunc("/data", s.handleSessionsCreate()).Methods("POST")
 
 	// /private/...
 	private := s.router.PathPrefix("/private").Subrouter()
@@ -112,7 +115,6 @@ func (s *server) authenticate(next http.Handler) http.Handler {
 		}
 		u, err := s.store.Data().Find(id.(int))
 		if err != nil {
-			s.logger.Printf("loh")
 			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
 			return
 		}
@@ -129,10 +131,9 @@ func (s *server) handleWhoami() http.HandlerFunc {
 
 func (s *server) handleUsersCreate() http.HandlerFunc {
 	type request struct {
-		Text     string `json:"text"`
-		Password string `json:"password"`
+		Text string `json:"text"`
+		Time int64  `json:"time"`
 	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -140,21 +141,32 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			return
 		}
 
+		timeout := time.Now().Add(time.Duration(req.Time * 1000000000))
+		// s.logger.Printf(req.Time.String())
+
 		image, err := renderImage(req.Text)
 		if err != nil {
 			s.error(w, r, http.StatusTeapot, err)
+			return
+		}
+
+		pswd, err := password.Generate(10, 4, 6, false, true)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		u := &model.Data{
 			Img:      image,
-			Password: req.Password,
+			Password: pswd,
+			Lifetime: timeout.Unix(),
 		}
 		if err := s.store.Data().Create(u); err != nil {
 			s.error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
 
-		u.Sanitize()
+		// u.Sanitize()
 		s.respond(w, r, http.StatusCreated, u)
 	}
 }
@@ -175,6 +187,12 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 		u, err := s.store.Data().Find(req.ID)
 		if err != nil || !u.ComparePassword(req.Password) {
 			s.error(w, r, http.StatusUnauthorized, errIncorrectEmailOrPassword)
+			return
+		}
+		s.logger.Print(u.Lifetime)
+
+		if !u.IsAlive() {
+			s.error(w, r, http.StatusNoContent, errNoContent)
 			return
 		}
 

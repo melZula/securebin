@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,6 +13,7 @@ type Data struct {
 	Img               string `json:"img"`
 	Password          string `json:"password,omitempty"` // omitempty: if empty - don't return
 	EncryptedPassword string `json:"-"`                  // no render
+	Lifetime          int64  `json:"lifetime"`
 }
 
 // Validate ...
@@ -36,6 +39,11 @@ func (u *Data) BeforeCreate() error {
 // Sanitize ...
 func (u *Data) Sanitize() {
 	u.Password = ""
+}
+
+// IsAlive ...
+func (u *Data) IsAlive() bool {
+	return time.Unix(u.Lifetime, 0).After(time.Now())
 }
 
 // ComparePassword ...
