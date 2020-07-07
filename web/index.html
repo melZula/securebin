@@ -46,8 +46,13 @@
               <option value="604800">1 week</option>
             </select>
           </div>
-          <div class="col s3 offset-s2">
-            <span v-if="id > 0" class="flow-text">ID: {{ id }}</span>
+          <div class="col s4 offset-s2">
+            <a
+              v-if="id > 0"
+              v-bind:href="'http://securebin.local/?id=' + id"
+              class="flow-text"
+              >{{ 'http://securebin.local/?id=' + id }}</a
+            >
             <br />
             <span v-if="pass.length > 0" class="flow-text"
               >Password: {{ pass }}</span
