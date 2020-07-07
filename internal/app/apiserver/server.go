@@ -64,8 +64,8 @@ func (s *server) configureRouter() {
 	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
 	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
-	s.router.HandleFunc("/paste", s.handleUsersCreate()).Methods("POST")
-	s.router.HandleFunc("/data", s.handleSessionsCreate()).Methods("POST")
+	s.router.HandleFunc("/api/paste", s.handleUsersCreate()).Methods("POST")
+	s.router.HandleFunc("/api/data", s.handleSessionsCreate()).Methods("POST")
 
 	// /private/...
 	private := s.router.PathPrefix("/private").Subrouter()
