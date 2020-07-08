@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,8 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/gorilla/handlers"
-
-	"github.com/gorilla/sessions"
 
 	"github.com/melZula/securebin/internal/app/model"
 
@@ -37,18 +36,16 @@ var (
 type ctxKey int8
 
 type server struct {
-	router       *mux.Router
-	logger       *logrus.Logger
-	store        store.Store
-	sessionStore sessions.Store
+	router *mux.Router
+	logger *logrus.Logger
+	store  store.Store
 }
 
-func newServer(store store.Store, sessionStore sessions.Store) *server {
+func newServer(store store.Store) *server {
 	s := &server{
-		router:       mux.NewRouter(),
-		logger:       logrus.New(),
-		store:        store,
-		sessionStore: sessionStore,
+		router: mux.NewRouter(),
+		logger: logrus.New(),
+		store:  store,
 	}
 
 	s.configureRouter()
@@ -145,6 +142,10 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 		Img     string `json:"img"`
 		PrevReq []int  `json:"times"`
 	}
+	type histEl struct {
+		ID   int   `json:"id"`
+		Time int64 `json:"time"`
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
@@ -175,17 +176,27 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			s.logger.Warning("Log of request hadn't recorded")
 		}
 
-		session, err := s.sessionStore.Get(r, sessionName)
+		var h []histEl
+		history, err := r.Cookie("history")
+		expiration := time.Now().UTC().Add(365 * 24 * time.Hour)
 		if err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-			return
+			if err != http.ErrNoCookie {
+				s.logger.Warning("Unable to get cookie")
+			}
+		} else {
+
+			buf, err := base64.StdEncoding.DecodeString(history.Value)
+			if err != nil {
+				s.logger.Warning("Can't decode b64: ", err)
+			}
+			if err := json.Unmarshal(buf, &h); err != nil {
+				s.logger.Warning("Can't unmarshal cookie: ", err)
+			}
 		}
 
-		session.Values["Data_id"] = u.ID
-		if err := s.sessionStore.Save(r, w, session); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-			return
-		}
+		h = append(h, histEl{ID: req.ID, Time: time.Now().UTC().Unix()})
+		c, err := json.Marshal(h)
+		http.SetCookie(w, &http.Cookie{Name: "history", Value: base64.StdEncoding.EncodeToString(c), Expires: expiration, Path: "/"})
 
 		s.respond(w, r, http.StatusOK, *res)
 	}
