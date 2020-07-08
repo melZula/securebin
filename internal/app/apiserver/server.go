@@ -64,13 +64,8 @@ func (s *server) configureRouter() {
 	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
 	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
-	s.router.HandleFunc("/api/paste", s.handleUsersCreate()).Methods("POST")
+	s.router.HandleFunc("/api/paste", s.handlePostCreate()).Methods("POST")
 	s.router.HandleFunc("/api/data", s.handleSessionsCreate()).Methods("POST")
-
-	// /private/...
-	private := s.router.PathPrefix("/private").Subrouter()
-	private.Use(s.authenticate)
-	private.HandleFunc("/whoami", s.handleWhoami()).Methods("GET")
 }
 
 func (s *server) setRequestID(next http.Handler) http.Handler {
@@ -101,35 +96,7 @@ func (s *server) logRequest(next http.Handler) http.Handler {
 	})
 }
 
-func (s *server) authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := s.sessionStore.Get(r, sessionName)
-		if err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		id, ok := session.Values["Data_id"]
-		if !ok {
-			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
-			return
-		}
-		u, err := s.store.Data().Find(id.(int))
-		if err != nil {
-			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
-			return
-		}
-
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyData, u)))
-	})
-}
-
-func (s *server) handleWhoami() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.respond(w, r, http.StatusOK, r.Context().Value(ctxKeyData).(*model.Data))
-	}
-}
-
-func (s *server) handleUsersCreate() http.HandlerFunc {
+func (s *server) handlePostCreate() http.HandlerFunc {
 	type request struct {
 		Text string `json:"text"`
 		Time int64  `json:"time"`
@@ -141,8 +108,7 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			return
 		}
 
-		timeout := time.Now().Add(time.Duration(req.Time * 1000000000))
-		// s.logger.Printf(req.Time.String())
+		timeout := time.Now().UTC().Add(time.Duration(req.Time * 1000000000))
 
 		image, err := renderImage(req.Text)
 		if err != nil {
@@ -166,7 +132,6 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			return
 		}
 
-		// u.Sanitize()
 		s.respond(w, r, http.StatusCreated, u)
 	}
 }
@@ -176,9 +141,14 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 		ID       int    `json:"id"`
 		Password string `json:"password"`
 	}
+	type response struct {
+		Img     string `json:"img"`
+		PrevReq []int  `json:"times"`
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
+		res := &response{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
@@ -189,11 +159,20 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			s.error(w, r, http.StatusUnauthorized, errIncorrectEmailOrPassword)
 			return
 		}
-		s.logger.Print(u.Lifetime)
 
 		if !u.IsAlive() {
 			s.error(w, r, http.StatusNoContent, errNoContent)
 			return
+		}
+
+		res.Img = u.Img
+		res.PrevReq, err = s.store.Data().GetPrevRequests(req.ID)
+		if err != nil {
+			s.logger.Warning("Can not get previous requests")
+		}
+
+		if err := s.store.Data().LogRequest(req.ID, r); err != nil {
+			s.logger.Warning("Log of request hadn't recorded")
 		}
 
 		session, err := s.sessionStore.Get(r, sessionName)
@@ -208,7 +187,7 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			return
 		}
 
-		s.respond(w, r, http.StatusOK, u.Img)
+		s.respond(w, r, http.StatusOK, *res)
 	}
 }
 

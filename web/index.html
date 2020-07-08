@@ -87,7 +87,14 @@
             >
           </div>
         </div>
-        <img v-else :src="img" />
+        <div v-else>
+          <img :src="img" />
+          <ul>
+            <li v-for="req in reqsts">
+              {{ (new Date(req * 1000)).toLocaleString("en-US", {}) }}
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 

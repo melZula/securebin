@@ -17,6 +17,7 @@ var app = new Vue({
     id: 0,
     img: '',
     pass: '',
+    reqsts: [],
     show: false,
     auth: true,
   },
@@ -79,12 +80,14 @@ var app = new Vue({
         .then((response) => {
           console.log(response);
           if (response.ok) {
-            response.text().then((txt) => {
-              this.img = 'data:image/png;base64,' + txt.replace(/^"|"$/gm, '');
-            });
+            return response.json();
           } else {
             return Promise.reject(response.status);
           }
+        })
+        .then((json) => {
+          this.img = 'data:image/png;base64,' + json.img.replace(/^"|"$/gm, '');
+          this.reqsts = json.times;
         })
         .catch((err) => {
           console.log(err);

@@ -43,7 +43,7 @@ func (u *Data) Sanitize() {
 
 // IsAlive ...
 func (u *Data) IsAlive() bool {
-	return time.Unix(u.Lifetime, 0).After(time.Now())
+	return time.Unix(u.Lifetime, 0).After(time.Now().UTC())
 }
 
 // ComparePassword ...

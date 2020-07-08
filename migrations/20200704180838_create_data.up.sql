@@ -5,6 +5,19 @@ CREATE TABLE securebin (
     lifetime timestamp without time zone DEFAULT (CURRENT_TIMESTAMP + '1 day'::interval) NOT NULL
 );
 
+CREATE TABLE public.requests
+(
+	id bigserial NOT NULL PRIMARY KEY,
+	data_id bigint NOT NULL,
+    remote_addr cidr NOT NULL,
+    "time" timestamp without time zone,
+    CONSTRAINT req_id FOREIGN KEY (data_id)
+        REFERENCES public.securebin (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
+);
+
 CREATE FUNCTION public.del_expired()
     RETURNS trigger
     LANGUAGE 'plpgsql'

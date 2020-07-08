@@ -1,10 +1,15 @@
 package store
 
-import "github.com/melZula/securebin/internal/app/model"
+import (
+	"net/http"
+
+	"github.com/melZula/securebin/internal/app/model"
+)
 
 // DataRepository ...
 type DataRepository interface {
 	Create(*model.Data) error
 	Find(int) (*model.Data, error)
-	// FindByEmail(string) (*model.Data, error)
+	LogRequest(int, *http.Request) error
+	GetPrevRequests(int) ([]int, error)
 }
