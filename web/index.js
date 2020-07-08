@@ -54,7 +54,6 @@ var app = new Vue({
         .then((r) => {
           this.id = r.id;
           this.pass = r.password;
-          alert('OK');
         })
         .catch((err) => {
           alert(err.status + ': ' + err.statusText);

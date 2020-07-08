@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sethvargo/go-password/password"
@@ -107,7 +108,7 @@ func (s *server) handlePostCreate() http.HandlerFunc {
 
 		timeout := time.Now().UTC().Add(time.Duration(req.Time * 1000000000))
 
-		image, err := renderImage(req.Text)
+		image, err := renderImage(strings.Split(req.Text, "\n"))
 		if err != nil {
 			s.error(w, r, http.StatusTeapot, err)
 			return
@@ -196,7 +197,11 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 
 		h = append(h, histEl{ID: req.ID, Time: time.Now().UTC().Unix()})
 		c, err := json.Marshal(h)
-		http.SetCookie(w, &http.Cookie{Name: "history", Value: base64.StdEncoding.EncodeToString(c), Expires: expiration, Path: "/"})
+		http.SetCookie(w,
+			&http.Cookie{Name: "history",
+				Value:   base64.StdEncoding.EncodeToString(c),
+				Expires: expiration,
+				Path:    "/"})
 
 		s.respond(w, r, http.StatusOK, *res)
 	}

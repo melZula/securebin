@@ -20,14 +20,12 @@ var (
 	dpi      float64 = 72
 	fontfile string  = "3952.ttf"
 	hinting  string  = "none"
-	size     float64 = 12
+	size     float64 = 16
 	spacing  float64 = 1.5
 	wonb     bool    = false
 )
 
-const title = "Jabberwocky"
-
-func renderImage(text string) (string, error) {
+func renderImage(text []string) (string, error) {
 
 	// Read the font data.
 	fontBytes, err := ioutil.ReadFile(fontfile)
@@ -72,15 +70,17 @@ func renderImage(text string) (string, error) {
 		}),
 	}
 	y := 10 + int(math.Ceil(size*dpi/72))
-	// dy := int(math.Ceil(size * spacing * dpi / 72))
+	dy := int(math.Ceil(size * spacing * dpi / 72))
 	d.Dot = fixed.Point26_6{
-		X: (fixed.I(imgW) - d.MeasureString(title)) / 2,
+		X: (fixed.I(imgW)) / 2,
 		Y: fixed.I(y),
 	}
-	d.DrawString(title)
-
-	d.Dot = fixed.P(10, y)
-	d.DrawString(text)
+	y += dy
+	for _, s := range text {
+		d.Dot = fixed.P(10, y)
+		d.DrawString(s)
+		y += dy
+	}
 
 	buf := new(bytes.Buffer)
 	err = png.Encode(buf, rgba)

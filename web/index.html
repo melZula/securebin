@@ -87,13 +87,18 @@
             >
           </div>
         </div>
-        <div v-else>
-          <img :src="img" />
-          <ul>
-            <li v-for="req in reqsts">
-              {{ (new Date(req * 1000)).toLocaleString("en-US", {}) }}
-            </li>
-          </ul>
+        <div v-else class="row">
+          <div class="col s12">
+            <img :src="img" />
+          </div>
+
+          <div class="col s6">
+            <ul class="collection">
+              <li v-for="req in reqsts" class="collection-item">
+                {{ (new Date(req * 1000)).toLocaleString("en-US", {}) }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
