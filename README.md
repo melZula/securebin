@@ -33,5 +33,5 @@ You need to run Nginx and setup reverse proxy. API path is `/api/...`<br/>
 
 ## Database
 
-You can use [go-migrate](https://github.com/golang-migrate/migrate) to run migration:
+You can use [go-migrate](https://github.com/golang-migrate/migrate) to run migration:<br/>
 `$ migrate -path migrations -database "postgres://localhost/securebin&sslmod=disable" up`
