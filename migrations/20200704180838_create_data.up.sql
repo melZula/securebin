@@ -14,7 +14,7 @@ CREATE TABLE public.requests
     CONSTRAINT req_id FOREIGN KEY (data_id)
         REFERENCES public.securebin (id) MATCH SIMPLE
         ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+        ON DELETE CASCADE
         NOT VALID
 );
 

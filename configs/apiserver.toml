@@ -1,4 +1,4 @@
 bind_addr = ":8080"
 log_level = "debug"
-database_url = "host=localhost dbname=securebin port=5433 sslmode=disable"
+database_url = "host=securebin_db dbname=securebin user=admin password=superpassword port=5432 sslmode=disable"
 session_key = "zmx3zy1qzytl24acf8fda6ur8s3ta0iq2usqsh21t7luek72rr508c2ue69vqb8yzi4f8q"
