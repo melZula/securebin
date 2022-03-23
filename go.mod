@@ -19,5 +19,6 @@ require (
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 )
